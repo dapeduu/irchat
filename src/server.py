@@ -13,19 +13,17 @@ class Server:
         self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.tcp_socket.bind((host, port))
 
-    def run(self):
+    def listen(self):
         """Listen to connections and send them to a thread"""
         failed_connections_allowed_before_refusing = 1
         self.tcp_socket.listen(failed_connections_allowed_before_refusing)
 
-        print(
-            f'Server is listening to connections on {(self.host, self.port)}')
-
-        while True:
-            connection, client = self.tcp_socket.accept()
-            print('Conected with ', client)
-            t = Thread(target=self.__connection, args=(connection, client))
-            t.start()
+    def accept_connection(self):
+        """Accepts client connection and set a thread to handle it"""
+        connection, client = self.tcp_socket.accept()
+        print('Conected with ', client)
+        t = Thread(target=self.__connection, args=(connection, client))
+        t.start()
 
     def __connection(self, connection: socket.socket, client):
         """Hanndles the received messages"""
