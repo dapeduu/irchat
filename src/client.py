@@ -16,9 +16,17 @@ class Client:
         self.tcp_socket.connect((self.host, self.port))
 
     def send_message(self, msg):
-        """Sends message to the server"""
+        """
+        Sends message to the server
+        Obs: msg must be a byte
+        """
         self.tcp_socket.send(msg)
 
     def close_connection(self):
         """Closes connection with the server"""
         self.tcp_socket.close()
+
+
+client = Client("127.0.0.1", 5002)
+client.connect()
+client.send_message(b"PRIVMSG Lemos asdjasdkjandkhakd")
