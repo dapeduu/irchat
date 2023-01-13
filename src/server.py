@@ -13,10 +13,10 @@ class Server:
         self.port = port
 
         self.channels = {
-            "Canal 1": Channel("Canal 1"),
-            "Canal 2": Channel("Cannal 2")
+            "Canal1": Channel("Canal1"),
+            "Canal2": Channel("Cannal2")
         }
-        self.users = {}
+        self.users: dict[str, User] = {}
 
         self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.tcp_socket.bind((host, port))
@@ -39,29 +39,83 @@ class Server:
         self.users[user.nick] = user
 
         print('Conected with ', client_address)
+        connection.send(b"Connected")
 
         t = Thread(target=self.__connection, args=(
             connection, client_address, user.nick))
         t.start()
 
-    def __connection(self, connection: socket.socket, client_address, nick):
+    def __connection(self, connection: socket.socket, client_address, nickname: str):
         """Hanndles the received messages"""
         while True:
             msg = connection.recv(1024)
             if not msg:
                 break
-            print(msg.decode())
 
-            # Aqui recebemos as mensagens e vamos chamar nossos handlers
-            if msg.decode() == "users":
-                print(self.users.keys())
+            msg_tokens = msg.decode().split()
+            command = msg_tokens[0]
 
-        self.users.pop(nick)
+            response = ""
+
+            if command == "LIST":
+                response = self.list_channels()
+            elif command == "JOIN":
+                channel = msg_tokens[1]
+                response = self.join_channel(channel, self.users[nickname])
+            elif command == "PART":
+                channel = msg_tokens[1]
+                response = self.part_channel(channel, self.users[nickname])
+            elif command == "NICK":
+                new_nickname = msg_tokens[1]
+                current_users = list(self.users.keys())
+                success = self.users[nickname].set_nick(
+                    new_nickname, current_users)
+
+                if success:
+                    self.users[new_nickname] = self.users.pop(nickname)
+                else:
+                    response = "Username already picked"
+            else:
+                print("ERR UNKNOWNCOMMAND")
+
+            connection.send(response.encode())
+        self.users.pop(nickname)
         connection.close()
         print('Finished client connection', client_address)
+
+    def list_channels(self):
+        channels_list = []
+        for channel_name, channel in self.channels.items():
+            channels_list.append(
+                f"{channel_name} - {len(list(channel.users.keys()))}")
+
+        return "Lista de Canais: \n" + "\n".join(channels_list)
+
+    def join_channel(self, channel_name: str, user: User):
+        if channel_name not in self.channels.keys():
+            return "Invalid channel name"
+
+        user_current_channel = self.users[user.nick].current_channel
+        if user_current_channel != None:
+            self.part_channel(user=user, channel_name=user_current_channel)
+
+        self.channels[channel_name].add_user(user)
+        self.users[user.nick].set_current_channel(channel_name)
+
+        return f"Joined {channel_name} successfully"
+
+    def part_channel(self, channel_name: str, user: User):
+        if channel_name not in self.channels.keys():
+            return "Invalid channel name"
+        if user.nick not in list(self.channels[channel_name].users.keys()):
+            return "User is not part of this channel"
+
+        self.channels[channel_name].remove_user(user.nick)
+        self.users[user.nick].quit_current_channel()
+
+        return f"Parted from {channel_name} successfully"
 
 
 server = Server("127.0.0.1", 5002)
 server.listen()
-server.accept_connection()
 server.accept_connection()
