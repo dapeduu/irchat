@@ -55,7 +55,7 @@ class Server:
             msg_tokens = msg.decode().split()
             command = msg_tokens[0]
 
-            response = ""
+            response = None
 
             if command == "LIST":
                 response = self.list_channels()
@@ -75,13 +75,48 @@ class Server:
                     self.users[new_nickname] = self.users.pop(nickname)
                 else:
                     response = "Username already picked"
+            elif command == "PRIVMSG":
+                destination = msg_tokens[1]  # Channel or User
+                response = self.priv_message(nickname, destination, msg_tokens)
+
+            elif command == "QUIT":
+                connection.close()
+                print('Manually finished client connection', client_address)
             else:
                 print("ERR UNKNOWNCOMMAND")
 
-            connection.send(response.encode())
+            if response != None:
+                connection.send(response.encode())
+
         self.users.pop(nickname)
         connection.close()
         print('Finished client connection', client_address)
+
+    def priv_message(self, sender: str, destination: str, msg_tokens: list[str]):
+        is_for_user = False
+        is_for_channel = False
+
+        for user in list(self.users.keys()):
+            if user != destination:
+                continue
+            is_for_user = True
+        for channel in list(self.channels.keys()):
+            if channel != destination:
+                continue
+            is_for_channel = True
+
+        msg = f"{sender} - " + " ".join(msg_tokens).split(" ", 2)[-1]
+
+        if is_for_user:
+            self.users[destination].connection.send(
+                msg.encode())
+        if is_for_channel:
+            for user in self.channels[destination].users.values():
+                user.connection.send(msg.encode())
+
+        if not (is_for_channel or is_for_user):
+            return "User or Channel not found"
+        return None
 
     def list_channels(self):
         channels_list = []
@@ -118,4 +153,5 @@ class Server:
 
 server = Server("127.0.0.1", 5002)
 server.listen()
+server.accept_connection()
 server.accept_connection()
