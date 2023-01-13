@@ -3,7 +3,7 @@ from user import User
 
 class Channel:
     def __init__(self, name) -> None:
-        self.users = {}
+        self.users: dict[str, User] = {}
         self.name = name
 
     def add_user(self, user: User):

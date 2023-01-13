@@ -7,7 +7,7 @@ class User:
         self.port = port
         self.client_name = client_name
         self.connection = connection
-        self.nick = f"Usuário {User.count}"
+        self.nick = f"Usuário{User.count}"
         self.current_channel = None
 
     def set_nick(self, nick: str, nicks: list[str]):
