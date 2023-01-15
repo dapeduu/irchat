@@ -30,7 +30,7 @@ class Server:
         """Accepts client connection and set a thread to handle it"""
         connection, client_address = self.tcp_socket.accept()
 
-        client_name = connection.recv(1024)
+        client_name = connection.recv(1024).decode()
         user = User(connection=connection,
                     host=client_address[0],
                     port=client_address[1],
@@ -45,7 +45,7 @@ class Server:
             connection, client_address, user.nick))
         t.start()
 
-    def __connection(self, connection: socket.socket, client_address, nickname: str):
+    def __connection(self, connection: socket.socket, client_address, current_user_nickname: str):
         """Hanndles the received messages"""
         while True:
             msg = connection.recv(1024)
@@ -59,25 +59,37 @@ class Server:
 
             if command == "LIST":
                 response = self.list_channels()
+
             elif command == "JOIN":
                 channel = msg_tokens[1]
-                response = self.join_channel(channel, self.users[nickname])
+                response = self.join_channel(
+                    channel, self.users[current_user_nickname])
+
             elif command == "PART":
                 channel = msg_tokens[1]
-                response = self.part_channel(channel, self.users[nickname])
+                response = self.part_channel(
+                    channel, self.users[current_user_nickname])
+
             elif command == "NICK":
                 new_nickname = msg_tokens[1]
                 current_users = list(self.users.keys())
-                success = self.users[nickname].set_nick(
+                success = self.users[current_user_nickname].set_nick(
                     new_nickname, current_users)
 
                 if success:
-                    self.users[new_nickname] = self.users.pop(nickname)
+                    self.users[new_nickname] = self.users.pop(
+                        current_user_nickname)
                 else:
                     response = "Username already picked"
+
+            elif command == "USER":
+                user_nickname = msg_tokens[1]
+                response = self.user(user_nickname)
+
             elif command == "PRIVMSG":
                 destination = msg_tokens[1]  # Channel or User
-                response = self.priv_message(nickname, destination, msg_tokens)
+                response = self.priv_message(
+                    current_user_nickname, destination, msg_tokens)
 
             elif command == "QUIT":
                 connection.close()
@@ -88,9 +100,17 @@ class Server:
             if response != None:
                 connection.send(response.encode())
 
-        self.users.pop(nickname)
+        self.users.pop(current_user_nickname)
         connection.close()
         print('Finished client connection', client_address)
+
+    def user(self, nickname: str):
+        if nickname not in list(self.users.keys()):
+            return "User not found"
+
+        user = self.users[nickname]
+
+        return user.get_user()
 
     def priv_message(self, sender: str, destination: str, msg_tokens: list[str]):
         is_for_user = False
@@ -116,6 +136,7 @@ class Server:
 
         if not (is_for_channel or is_for_user):
             return "User or Channel not found"
+
         return None
 
     def list_channels(self):
