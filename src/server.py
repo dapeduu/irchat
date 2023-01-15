@@ -86,6 +86,10 @@ class Server:
                 user_nickname = msg_tokens[1]
                 response = self.user(user_nickname)
 
+            elif command == "WHO":
+                channel_name = msg_tokens[1]
+                response = self.who(channel_name)
+
             elif command == "PRIVMSG":
                 destination = msg_tokens[1]  # Channel or User
                 response = self.priv_message(
@@ -94,6 +98,7 @@ class Server:
             elif command == "QUIT":
                 connection.close()
                 print('Manually finished client connection', client_address)
+                break
             else:
                 print("ERR UNKNOWNCOMMAND")
 
@@ -111,6 +116,17 @@ class Server:
         user = self.users[nickname]
 
         return user.get_user()
+
+    def who(self, channel_name: str):
+        if channel_name not in list(self.channels.keys()):
+            return "Channel not found"
+
+        channel = self.channels[channel_name]
+        channel_users_list = list(channel.users.keys())
+        channel_users = " ".join(
+            channel_users_list) if len(channel_users_list) > 0 else "No users"
+
+        return f"{channel_name} - {channel_users}"
 
     def priv_message(self, sender: str, destination: str, msg_tokens: list[str]):
         is_for_user = False
