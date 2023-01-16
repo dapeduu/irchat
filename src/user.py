@@ -1,14 +1,16 @@
-class User:
-    count = 0
+import uuid
 
-    def __init__(self, host, port, client_name, connection):
-        User.count += 1
+
+class User:
+
+    def __init__(self, host, port, client_name, nick, connection):
         self.host = host
         self.port = port
         self.client_name = client_name
         self.connection = connection
-        self.nick = f"Usuário{User.count}"
+        self.nick = nick
         self.current_channel = None
+        self.id = uuid.uuid4()
 
     def set_nick(self, nick: str, nicks: list[str]):
         if nick in nicks:

@@ -6,18 +6,26 @@ from threading import Thread
 class Client:
     """Handles connection with the server."""
 
-    def __init__(self, host, port, client_name) -> None:
-        self.host = host
-        self.port = port
+    def __init__(self, host=None, port=None, client_name=None, initial_nick=None) -> None:
+        self.host = host if host else input("Endereço de ip do servidor:\n")
+        self.port = port if port else int(
+            input("Número da porta do servidor:\n"))
         self.tcp_socket = socket.socket(socket.AF_INET,
                                         socket.SOCK_STREAM)
-        self.client_name = client_name
+        self.client_name = client_name if client_name else input("Seu nome:\n")
+        self.initial_nick = initial_nick if initial_nick else input(
+            "Seu apelido:\n")
         self.running = False
+
+        self.connect()
 
     def connect(self):
         """Connects with the server on the host and ports initialized and send the client name"""
         self.tcp_socket.connect((self.host, self.port))
-        client.send_message(self.client_name.encode())
+
+        client_nick_and_name = f"{self.client_name} {self.initial_nick}"
+        self.send_message(client_nick_and_name.encode())
+
         self.running = True
 
         t_receive_messages = Thread(target=self.receive_messages_loop)
@@ -33,7 +41,7 @@ class Client:
         self.tcp_socket.send(msg)
 
     def receive_message(self):
-        return self.tcp_socket.recv(1024).decode()
+        return self.tcp_socket.recv(1024).decode() + "\n"
 
     def close_connection(self):
         """Closes connection with the server"""
@@ -55,5 +63,4 @@ class Client:
                 self.running = False
 
 
-client = Client("127.0.0.1", 5002, "Desktop top")
-client.connect()
+Client("192.168.3.4", 5002, "Pedro")
