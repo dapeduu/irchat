@@ -1,2 +1,2 @@
-# Próximos passos
-- Teste com diferentes notebooks no mesmo wifi
+# IRChat
+Um chat de IRC com interface pelo terminal. Criado para a matéria de Bancos de Dados da UNB.
